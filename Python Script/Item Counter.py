@@ -3,7 +3,7 @@
 # For Python Script, Notepad++
 #
 # By Henrique Bruno Fantauzzi de Almeida, Rio de Janeiro - RJ - Brazil
-# Github: 
+# Github: https://github.com/SrBrahma/NotepadPlusPlus-Plugins
 # 03/01/2018
 #
 # A small and simple code to count and write items or lines in decimal, hexadecimal or octal in a text.
@@ -12,7 +12,7 @@
 # As I made this code firstly for myself and I don't intend to use it constantly, the code is very rudimentary. But works well.
 #
 #
-
+#
 #
 # Example:
 #  [0x00]  Lorem ipsum dolor sit amet, 
