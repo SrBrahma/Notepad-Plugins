@@ -2,7 +2,9 @@
 
 ## Some small but useful codes I made for a project of mine.
 
-### 1) Multiple Replacer - Uses a dictionary text file to replace multiple expressions / words in a text file.
+### 1a) Multiple Replacer - Uses a dictionary text file to replace multiple expressions / words in a text file.
+
+### 1b) Multiple ReReplacer - The Regex version!
 
 ### 2) Item Counter - Counts brackets occurrences, and writes the current count inside it. Useful for making automated custom lines in a file. Supports Hexadecimal, decimal and octal counting. You can also set a fixed number for a bracket, and it will be the new index. Supports custom prefixes.
 #### Example:
@@ -22,7 +24,7 @@
  
      [0x05]  habitasse platea. Posuere lorem ipsum
  
-
+### 3) Logiwin LASM Compiler - A compiler for .lasm files, a language that I created to use in my Logiwin project. Probably isn't too much useful for you.
 
 ### For now they use the Python Script Plugin, and it is very simple to use, but maybe someday I make it a .dll for Notepad++.
 
