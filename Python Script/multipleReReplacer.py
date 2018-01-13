@@ -1,7 +1,14 @@
 from Npp import *
+import re
 #
-# Check out the Regex version!
+# REGEX VERSION!!!
 #
+# Dictionary file example:
+#
+#   "(?<=[\s\]])NOP[ \t]+#(0x)?" 00
+#   "(?<=[\s\]])NOP[ \t]+" 00
+#
+# Gets a word without quotes (but accepts a word like Wor\"d
 # For Python Script, Notepad++
 #
 # By Henrique Bruno Fantauzzi de Almeida, Rio de Janeiro - RJ - Brazil
@@ -50,7 +57,8 @@ def main():
 
                 if len(lineContent) == 1:
                     notepad.messageBox("ERROR 1: Only 1 word found on line " + str(lineNumber) + " of the dictionary file.\n(" + lineContent[0] + ")", "Multiple Replacer.py", 0)
-                    break
+                    editor.endUndoAction() # To undo everything with a single ctrl+z
+                    return 1
                     
                 elif len(lineContent) > 1:
                 
@@ -113,12 +121,15 @@ def main():
                         # If not not found a second expression, display error
                     if not startOfSecondExpression:
                         notepad.messageBox("ERROR 2: Only 1 word found on line " + str(lineNumber) + " of the dictionary file.\n(" + lineContent[0] + ")", "Multiple Replacer.py", 0)
-                        break
+                        editor.endUndoAction() # To undo everything with a single ctrl+z
+                        return 1
                         
                     if not endOfSecondExpression: 
                         endOfSecondExpression = charIndex + 1
                         
-                    editor.replace(line[startOfFirstExpression:endOfFirstExpression], line[startOfSecondExpression:endOfSecondExpression])
+                    arg1 = line[startOfFirstExpression:endOfFirstExpression]
+                    arg2 = line[startOfSecondExpression:endOfSecondExpression]
+                    editor.rereplace(arg1, arg2)
                 # End of more than one word conditional
             # End of not a commentary conditional
         # End of line loop      

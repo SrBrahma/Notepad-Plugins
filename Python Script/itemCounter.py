@@ -1,4 +1,5 @@
 from Npp import *
+import re
 #
 # ItemCounterV1
 # For Python Script, Notepad++
@@ -26,6 +27,12 @@ from Npp import *
 #    console.write(text+" = {" + str(var) + "}\n")
     
 # ========== SETTINGS =============
+#
+# The raw form
+MARKER_BEFORE = "["
+#
+# The raw form
+MARKER_AFTER = "]"
 #
 # "0x", etc to be written before the number
 COUNTER_PREFIX = ""
@@ -56,57 +63,60 @@ DEFAULT_STARTING_VALUE = 0
 #
 # 
 # =================================
-    
-def main():
-    global globalQuit
-    globalQuit = False
-    
-    try:
-        def match_found(m):
-            global foundMatch
-            global previousStartPosition
-            global actualCustomLine
-            foundMatch = True
-            # startEnd is a tuple; = (start, end)
-            startEnd = m.span(0)
-            #try:
-            if m.groups()[0] == "F":
-                if NUMERIC_BASE == "%X" or NUMERIC_BASE == "%x":
-                    actualCustomLine = int(editor.getTextRange(startEnd[0]+2, startEnd[1] - 1), 16) + 1 # Get the inner value and make it a integer, and add 1
-                if NUMERIC_BASE == "%d":
-                    actualCustomLine = int(editor.getTextRange(startEnd[0]+2, startEnd[1] - 1)) + 1 # Get the inner value and make it a integer, and add 1
-                if NUMERIC_BASE == "%o":
-                    actualCustomLine = int(editor.getTextRange(startEnd[0]+2, startEnd[1] - 1), 8) + 1 # Get the inner value and make it a integer, and add 1
-            #except:
-                #pass
-               # notepad.messageBox("Error 1: Invalid fixed number , "itemCounter", 0) Editor.lineFromPosition(pos)
+
+def main(markerBefore0 = MARKER_BEFORE, markerAfter0 = MARKER_AFTER, defaultStartingValue = DEFAULT_STARTING_VALUE):
+    if 1 == 1:
+        def foundMarkers(m):
+            global globalActualCounter
+            global globalQuit
+            
+            if not globalQuit:
+                # [0] = Fixed, [1] = marker before, [2] = content, [3] = marker after
+                groups = m.groups()
+                try:
+                    if m.groups()[0]: # If found fixed value
+                        if NUMERIC_BASE == "%X" or NUMERIC_BASE == "%x":
+                            globalActualCounter = int(groups[2], 16) + 1
+                        if NUMERIC_BASE == "%d":
+                            globalActualCounter = int(groups[2]) + 1 # Get the inner value and make it a integer, and add 1
+                        if NUMERIC_BASE == "%o":
+                            globalActualCounter = int(groups[2], 8) + 1 # Get the inner value and make it a integer, and add 1
+                        return m.group()
+                except:
+                    console.write("itemCounter text error: Error on fixed counter \"" + m.group() + "\", on line " + str(editor.lineFromPosition(m.start())) + "\n")
+                    notepad.messageBox("Error on fixed counter \"" + m.group() + "\", on line " + str(editor.lineFromPosition(m.start())) + "\n", "itemCounter", 0)
+                    editor.endUndoAction()
+                    globalQuit = 1
+                    return m.group()
+                   # notepad.messageBox("Error 1: Invalid fixed number , "itemCounter", 0) Editor.lineFromPosition(pos)
+                else:
+                    willWrite = groups[0] + groups[1] + COUNTER_PREFIX + (NUMERIC_BASE % globalActualCounter).zfill(ZEROES_ON_LEFT_UNTIL_X_CHARS) + groups[3]
+                    globalActualCounter += 1
+                    return willWrite
             else:
-                willWrite = COUNTER_PREFIX + (NUMERIC_BASE % actualCustomLine).zfill(ZEROES_ON_LEFT_UNTIL_X_CHARS)
-                if  m.groups()[1] != willWrite: # Reduced the time a lot if content is equal to what is going to be written
-                    editor.deleteRange(startEnd[0]+1, startEnd[1] - startEnd[0] - 2) # Deletes the content inside the brackets []
-                    editor.insertText(startEnd[0]+1, willWrite) 
-                actualCustomLine += 1
+                return m.group()
                 
-            previousStartPosition = startEnd[0] + 2 # Make the searcher don't look for the same line indicator when having a F[] before.
-            
+        global globalQuit
+        global globalActualCounter
+        global markerBefore
+        global markerAfter
+                
+        globalQuit = 0
+        globalActualCounter = defaultStartingValue
+        markerBefore = re.escape(markerBefore0) # If the marker is a escape sequence, make it literal
+        markerAfter = re.escape(markerAfter0)   # If the marker is a escape sequence, make it literal
+        
+        # end of foundMarkers
         editor.beginUndoAction() # To undo everything with a single ctrl+z
-
-        actualCustomLine = DEFAULT_STARTING_VALUE
-
-        global previousStartPosition
-        previousStartPosition = 0
         
-        global foundMatch
-        foundMatch = True
-        while foundMatch:
-            foundMatch = False
-            editor.research("(F?)\[(\w*)\]", match_found, 0, previousStartPosition, 0, 1)
+        # [0] = Fixed, [1] = marker before, [2] = content, [3] = marker after
+        editor.rereplace("(F?)(" + markerBefore + ")(\w*)(" + markerAfter + ")", foundMarkers)
+        if globalQuit:
+            return 1
             
-        
-        
         # Add prefix to fixed values, if they haven't
         if ADD_PREFIX_FIXED_VALUES and COUNTER_PREFIX:
-            editor.rereplace("(?<=F\[)(?!" + COUNTER_PREFIX + ")(?=.*\])", COUNTER_PREFIX)
+            editor.rereplace("(?<=F" + markerBefore + ")(?!" + COUNTER_PREFIX + ")(?=.*" + markerAfter + ")", COUNTER_PREFIX)
            
         def findLargestLength(m):
             global globalLongestLength
@@ -119,28 +129,33 @@ def main():
             globalLongestLength = 0
 
             # The longest length is the valid length, excludes the zeroes before
-            editor.research("(?<=\[)(?:" + COUNTER_PREFIX + ")?0*(\w*)(?=\])", findLargestLength)
+            editor.research("(?<=" + markerBefore + ")(?:" + COUNTER_PREFIX + ")?0*(\w*)(?=" + markerAfter + ")", findLargestLength)
             # Now replace all the values with a length smaller
             # Get the largest length, excluding already existing zero fills
             
-            if ZERO_FILL_FIXED_VALUES:
-                # Replaces all
-                editor.rereplace("(?<=\[" + COUNTER_PREFIX + ")(\w{0, " + str(globalLongestLength - 1) + "})(?=\])", lambda m: m.group().zfill(globalLongestLength))
-            
-                # Remove possible excessive zeroes from fixed values (from previous executions that zero filled them more than they need now)
-                editor.rereplace("(?<=F\[)0+(\w{" + str(globalLongestLength) + "})(?=\])", "\\1")
-            
-            else:
-                # Only replaces non-fixed values
-                editor.rereplace("(?<!F\[" + COUNTER_PREFIX + ")(?<=\[" + COUNTER_PREFIX + ")(\w{0, " + str(globalLongestLength - 1) + "})(?=\])", lambda m: m.group().zfill(globalLongestLength))
+            if globalLongestLength:
+                if ZERO_FILL_FIXED_VALUES:
+                    # Replaces all
+                    editor.rereplace("(?<=" + markerBefore + COUNTER_PREFIX + ")(\w{0, " + str(globalLongestLength - 1) + "})(?=" + markerAfter + ")", lambda m: m.group().zfill(globalLongestLength))
+                
+                    # Remove possible excessive zeroes from fixed values (from previous executions that zero filled them more than they need now)
+                    editor.rereplace("(?<=F" + markerBefore + ")0+(\w{" + str(globalLongestLength) + "})(?=" + markerAfter + ")", "\\1")
+                
+                else:
+                    # Only replaces non-fixed values
+                    editor.rereplace("(?<!F" + markerBefore + COUNTER_PREFIX + ")(?<=" + markerBefore + COUNTER_PREFIX + ")(\w{0, " + str(globalLongestLength - 1) + "})(?=" + markerAfter + ")", lambda m: m.group().zfill(globalLongestLength))
                 
         else:
             if ZERO_FILL_FIXED_VALUES:
-                editor.rereplace("(?<=F\[" + COUNTER_PREFIX + ")(\w{0, " + str(ZEROES_ON_LEFT_UNTIL_X_CHARS - 1) + "})(?=\])", lambda m: m.group().zfill(ZEROES_ON_LEFT_UNTIL_X_CHARS))
+                editor.rereplace("(?<=F" + markerBefore + COUNTER_PREFIX + ")(\w{0, " + str(ZEROES_ON_LEFT_UNTIL_X_CHARS - 1) + "})(?=" + markerAfter + ")", lambda m: m.group().zfill(ZEROES_ON_LEFT_UNTIL_X_CHARS))
         editor.endUndoAction() # To undo everything with a single ctrl+z
+        return 0
+        '''
     except Exception as e:
-        notepad.messageBox(e.message, "itemCounter", 0)
-
+        console.write("itemCounter Python error (bad code): " + e.message)
+        notepad.messageBox("(Bad code): " + e.message, "itemCounter Python error", 0)
+        editor.endUndoAction()
+        return 1'''
 if __name__ == "__main__":
     main()
     
