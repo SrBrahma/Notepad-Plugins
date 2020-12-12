@@ -24,6 +24,4 @@
  
      [0x05]  habitasse platea. Posuere lorem ipsum
  
-### 3) Logiwin LASM Compiler - A compiler for .lasm files, a language that I created to use in my Logiwin project. Probably isn't too much useful for you.
-
-### For now they use the Python Script Plugin, and it is very simple to use, but maybe someday I make it a .dll for Notepad++.
+### 3) Logiwin LASM Compiler - A compiler for .lasm files, a language that I created to use in my Logiwin project.
